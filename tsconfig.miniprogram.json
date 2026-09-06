@@ -1,0 +1,13 @@
+{
+  // 小程序侧的类型检查（页面 + data/ 层用 wx.* API）。
+  //
+  // 为什么要第二份配置：根 tsconfig 给 core/tests/tools 用，types 是 ["node"]。
+  // 同一个项目里 node 的 typings 和 miniprogram 的 typings 会互相污染
+  //（比如 setTimeout 的返回值一个是 Timeout 对象一个是 number），
+  // 所以按运行环境分开，各自只加载自己那套全局声明。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["miniprogram-api-typings"]
+  },
+  "include": ["miniprogram/**/*.ts"]
+}

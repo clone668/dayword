@@ -1,0 +1,15 @@
+{
+  // 试玩构建：只为 `node dist/tools/play.js` 存在，小程序侧不用它。
+  //
+  // 为什么必须先编译：源码里的 import 写的是 `./types.js` 但文件是 `types.ts`
+  // （ESM + TS 的标准写法，vitest 靠 moduleResolution: Bundler 解析）。
+  // 裸 node 即使开了类型剥离也解析不到 —— 编译到 dist/ 后路径就真实存在了。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": ".",
+    "sourceMap": true
+  },
+  "include": ["miniprogram/core/**/*.ts", "tools/**/*.ts"]
+}

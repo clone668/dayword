@@ -1,0 +1,24 @@
+{
+  "name": "dayword",
+  "version": "0.1.0",
+  "private": true,
+  "description": "每日单词 —— 儿童英语单词小程序（M1: 纯逻辑内核）",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "npm run typecheck:core --silent && npm run typecheck:mp --silent",
+    "typecheck:core": "tsc --noEmit",
+    "typecheck:mp": "tsc --noEmit -p tsconfig.miniprogram.json",
+    "sim": "vitest run tests/simulation.test.ts --reporter=verbose",
+    "build:demo": "tsc -p tsconfig.build.json",
+    "play": "npm run build:demo --silent && node dist/tools/play.js",
+    "trace": "npm run build:demo --silent && node dist/tools/play.js trace"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "miniprogram-api-typings": "5.2.3",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
+  }
+}

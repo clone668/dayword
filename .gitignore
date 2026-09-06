@@ -1,0 +1,15 @@
+node_modules/
+npm-debug.log*
+.DS_Store
+*.log
+
+# 微信开发者工具的本地私有配置（不要提交，含个人 appid 与本地路径）
+project.private.config.json
+.idea/
+.vscode/
+
+# 试玩构建产物（npm run play 会重新生成）
+dist/
+
+# 终端试玩的本地存档，与小程序 Storage 无关
+.dayword-demo.json

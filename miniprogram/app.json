@@ -1,0 +1,29 @@
+{
+  "pages": ["pages/home/index", "pages/learn/index"],
+  "window": {
+    "backgroundColor": "@bg",
+    "backgroundColorTop": "@bg",
+    "backgroundColorBottom": "@bg",
+    "backgroundTextStyle": "@bgText",
+    "navigationBarBackgroundColor": "@navBg",
+    "navigationBarTitleText": "每日单词",
+    "navigationBarTextStyle": "@navText",
+    "navigationStyle": "custom"
+  },
+  "darkmode": true,
+  "themeLocation": "theme.json",
+  "renderer": "skyline",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "defaultContentBox": true,
+      "disableABTest": true,
+      "sdkVersionBegin": "3.0.0",
+      "sdkVersionEnd": "15.255.255"
+    }
+  },
+  "componentFramework": "glass-easel",
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

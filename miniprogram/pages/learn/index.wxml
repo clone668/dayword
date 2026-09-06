@@ -1,0 +1,137 @@
+<view class="page {{themeCls}}">
+  <view class="bar" style="padding-top: {{statusBar}}px">
+    <view class="back" hover-class="cta-hover" bindtap="quit">
+      <text class="back-text">‹ 返回</text>
+    </view>
+    <text class="bar-level">{{done}}/{{total}} 词过关</text>
+  </view>
+  <!-- 分母是"词"不是"题"：答错的词会插回队列再来一次，但进度条不该倒退 -->
+  <view class="pbar">
+    <view class="pfill" style="width: {{pctDone}}%"></view>
+  </view>
+
+  <scroll-view class="body" scroll-y>
+    <view class="loading" wx:if="{{phase === 'loading'}}">
+      <text class="loading-text">正在安排今天的功课…</text>
+    </view>
+
+    <!-- 新词第一张卡是"教"不是"测"（见 core/session.ts） -->
+    <view class="card" wx:if="{{phase === 'teach'}}">
+      <text class="teach-tag">✨ 新单词</text>
+      <image class="stem-img" wx:if="{{teach.image}}" src="{{teach.image}}" mode="aspectFit" />
+      <view class="stem-fallback" wx:else>
+        <text class="stem-fallback-text">{{teach.zh}}</text>
+      </view>
+      <text class="teach-word">{{teach.text}}</text>
+      <view class="audio" hover-class="cta-hover" bindtap="playWord">
+        <text class="audio-text">🔊 {{teach.phonetic}}</text>
+      </view>
+      <text class="teach-zh">{{teach.zh}} · {{teach.pos}}</text>
+      <text class="teach-ex" wx:if="{{teach.exEn}}">{{teach.exEn}}</text>
+      <text class="teach-ex-zh" wx:if="{{teach.exZh}}">{{teach.exZh}}</text>
+      <view class="cta" hover-class="cta-hover" bindtap="learned">
+        <text class="cta-text">记住了</text>
+      </view>
+    </view>
+
+    <!-- 答题 -->
+    <view class="card" wx:if="{{phase === 'quiz'}}">
+      <text class="q-hint">{{quiz.hint}}</text>
+
+      <view class="audio" wx:if="{{quiz.audio}}" hover-class="cta-hover" bindtap="playWord">
+        <text class="audio-text">🔊 点我听发音</text>
+      </view>
+      <text class="q-degrade" wx:if="{{quiz.audio && !hasMedia}}">音频还没接入，先按音标读：{{quiz.phonetic}}</text>
+
+      <image class="stem-img" wx:if="{{quiz.stemImage}}" src="{{quiz.stemImage}}" mode="aspectFit" />
+      <view class="stem-fallback" wx:elif="{{quiz.stemText}}">
+        <text class="stem-fallback-text">{{quiz.stemText}}</text>
+      </view>
+
+      <text class="q-title" wx:if="{{quiz.title}}">{{quiz.title}}</text>
+      <text class="q-sub" wx:if="{{quiz.subtitle}}">{{quiz.subtitle}}</text>
+    </view>
+
+    <!-- 选择题 -->
+    <view class="opts" wx:if="{{phase === 'quiz' && quiz.mode === 'choice'}}">
+      <view
+        class="opt {{optCls[index]}}"
+        wx:for="{{quiz.options}}"
+        wx:key="text"
+        hover-class="cta-hover"
+        bindtap="pick"
+        data-i="{{index}}"
+      >
+        <image class="opt-img" wx:if="{{item.image}}" src="{{item.image}}" mode="aspectFit" />
+        <text class="opt-text">{{item.text}}</text>
+      </view>
+    </view>
+
+    <!-- 点字母拼写。真正的拖拽要 worklet 动画，MVP 先做"按顺序点"，判分口径完全一样 -->
+    <view class="card" wx:if="{{phase === 'quiz' && quiz.mode === 'letters'}}">
+      <view class="spell-out">
+        <view class="chip" wx:for="{{spelled}}" wx:key="key" hover-class="cta-hover" bindtap="unspell" data-i="{{index}}">
+          <text class="chip-text">{{item.ch}}</text>
+        </view>
+        <text class="spell-empty" wx:if="{{spelled.length === 0}}">点下面的字母，按顺序拼出来</text>
+      </view>
+      <view class="spell-pool">
+        <view
+          class="chip {{item.used ? 'chip-used' : ''}}"
+          wx:for="{{pool}}"
+          wx:key="key"
+          hover-class="cta-hover"
+          bindtap="spell"
+          data-i="{{index}}"
+        >
+          <text class="chip-text">{{item.ch}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 键盘拼写 / 听写 -->
+    <view class="card" wx:if="{{phase === 'quiz' && quiz.mode === 'input'}}">
+      <input
+        class="input"
+        value="{{typed}}"
+        placeholder="在这里拼出这个单词"
+        confirm-type="done"
+        disabled="{{feedback !== 'none'}}"
+        bindinput="onType"
+        bindconfirm="check"
+      />
+    </view>
+
+    <view class="submit-wrap" wx:if="{{phase === 'quiz' && quiz.mode !== 'choice' && feedback === 'none'}}">
+      <view class="cta" hover-class="cta-hover" bindtap="check">
+        <text class="cta-text">检查</text>
+      </view>
+    </view>
+
+    <!-- 反馈。答对自动往下走，答错要孩子自己点"继续"—— 强迫看一眼正确答案 -->
+    <view class="fb fb-{{feedback}}" wx:if="{{phase === 'quiz' && feedback !== 'none'}}">
+      <text class="fb-text">{{fbText}}</text>
+      <view class="cta cta-ghost" wx:if="{{feedback !== 'right'}}" hover-class="cta-hover" bindtap="next">
+        <text class="cta-ghost-text">继续</text>
+      </view>
+    </view>
+
+    <!-- 结算 -->
+    <view class="card" wx:if="{{phase === 'done'}}">
+      <text class="done-title">{{summary.title}}</text>
+      <!-- 只庆祝升级：降级必须静默，孩子端不给任何"你退步了"的反馈（core/level.ts） -->
+      <view class="levelup" wx:if="{{summary.levelUp}}">
+        <text class="levelup-text">🎉 升级啦！现在是 L{{summary.level}}</text>
+      </view>
+      <view class="kv" wx:for="{{summary.rows}}" wx:key="k">
+        <text class="kv-k">{{item.k}}</text>
+        <text class="kv-v">{{item.v}}</text>
+      </view>
+      <view class="cta" hover-class="cta-hover" bindtap="quit">
+        <text class="cta-text">回首页</text>
+      </view>
+    </view>
+
+    <view class="tail"></view>
+  </scroll-view>
+</view>

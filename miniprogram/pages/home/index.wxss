@@ -1,0 +1,198 @@
+/* 首页。配色全部走 app.wxss 的变量，深浅两套共用这一份规则。 */
+
+.task-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.task-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 数字用衬线体：Anthropic 那种"排版感"主要就来自这里 */
+.task-num {
+  font-family: var(--serif);
+  font-size: 68rpx;
+  color: var(--fg);
+  line-height: 80rpx;
+}
+
+.task-label {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--fg-3);
+  letter-spacing: 1rpx;
+}
+
+.notice {
+  margin-top: 24rpx;
+  padding: 20rpx 24rpx;
+  box-sizing: border-box;
+  background-color: var(--tint);
+  border-radius: 12rpx;
+}
+
+.notice-text {
+  font-size: 24rpx;
+  color: var(--tint-fg);
+  line-height: 36rpx;
+}
+
+/* .cta / .cta-hover / .cta-text / .kv* 在 app.wxss 里，两个页面共用 */
+
+.empty {
+  margin-top: 28rpx;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.empty-text {
+  font-size: 26rpx;
+  color: var(--fg-3);
+}
+
+/* ---- 爬楼梯 ---- */
+
+.floor {
+  margin-bottom: 24rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.floor-top {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.floor-name {
+  font-size: 26rpx;
+  color: var(--fg-2);
+}
+
+.floor-count {
+  font-family: var(--serif);
+  font-size: 26rpx;
+  color: var(--fg-3);
+}
+
+/* 条形做方一点（4rpx 而不是 10rpx）—— 圆头条会显得像游戏进度条 */
+.floor-bar {
+  margin-top: 10rpx;
+  height: 14rpx;
+  border-radius: 4rpx;
+  background-color: var(--surface-2);
+  display: flex;
+  flex-direction: row;
+}
+
+.floor-fill {
+  height: 14rpx;
+  border-radius: 4rpx;
+  background-color: var(--accent);
+}
+
+.floor-sample {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: var(--fg-3);
+}
+
+.floor-hint {
+  margin-top: 8rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--line);
+  font-size: 22rpx;
+  color: var(--fg-3);
+  line-height: 34rpx;
+}
+
+/* ---- 连续打卡 ---- */
+
+.streak-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.streak-flame {
+  font-size: 52rpx;
+  margin-right: 28rpx;
+}
+
+.streak-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.streak-num {
+  font-family: var(--serif);
+  font-size: 36rpx;
+  color: var(--fg);
+}
+
+.streak-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--fg-3);
+}
+
+/* ---- 家长周报 ---- */
+
+.stubborn {
+  margin-top: 20rpx;
+  padding: 18rpx 22rpx;
+  box-sizing: border-box;
+  background-color: var(--no-bg);
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: var(--no-fg);
+  line-height: 36rpx;
+}
+
+/* ---- 开发者工具 ---- */
+
+.card-dev {
+  background-color: transparent;
+  border-style: dashed;
+}
+
+.dev-note {
+  font-size: 22rpx;
+  color: var(--fg-3);
+  line-height: 34rpx;
+  margin-bottom: 20rpx;
+}
+
+.dev-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.dev-btn {
+  flex: 1;
+  margin-right: 14rpx;
+  height: 88rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid var(--line);
+  background-color: var(--surface);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.dev-btn-warn {
+  margin-right: 0;
+  background-color: var(--no-bg);
+}
+
+.dev-btn-text {
+  font-size: 26rpx;
+  color: var(--fg-2);
+}

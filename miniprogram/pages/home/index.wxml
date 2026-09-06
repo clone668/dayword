@@ -1,0 +1,116 @@
+<!-- 根节点上的 {{themeCls}} 是整套配色的开关，见 data/theme.ts -->
+<view class="page {{themeCls}}">
+  <view class="bar" style="padding-top: {{statusBar}}px">
+    <view class="bar-left">
+      <text class="bar-title">每日单词</text>
+      <text class="bar-level">L{{level}} · {{levelTheme}}</text>
+    </view>
+    <view class="theme-btn" hover-class="cta-hover" bindtap="toggleTheme">
+      <text class="theme-btn-text">{{themeGlyph}}</text>
+    </view>
+  </view>
+
+  <scroll-view class="body" scroll-y>
+    <!-- 今日任务 -->
+    <view class="card">
+      <view class="card-head">
+        <text class="card-title">{{doneToday ? '今天已完成' : '今天的功课'}}</text>
+        <text class="card-sub">{{todayText}}</text>
+      </view>
+
+      <view class="task-row">
+        <view class="task-cell">
+          <text class="task-num">{{newCount}}</text>
+          <text class="task-label">新词</text>
+        </view>
+        <view class="task-cell">
+          <text class="task-num">{{reviewCount}}</text>
+          <text class="task-label">复习</text>
+        </view>
+        <view class="task-cell">
+          <text class="task-num">{{minutes}}</text>
+          <text class="task-label">约几分钟</text>
+        </view>
+      </view>
+
+      <view class="notice" wx:if="{{newPaused}}">
+        <text class="notice-text">有 {{backlog}} 个词今天排不下 —— 先还旧账，暂停发新词</text>
+      </view>
+      <view class="notice" wx:if="{{starved}}">
+        <text class="notice-text">内置词库（{{poolSize}} 词）已经发完了，不是调度器踩了刹车</text>
+      </view>
+
+      <view class="cta" hover-class="cta-hover" bindtap="start" wx:if="{{total > 0}}">
+        <text class="cta-text">{{doneToday ? '继续（还有到期的词）' : '开始今天的学习'}}</text>
+      </view>
+      <view class="empty" wx:if="{{total === 0}}">
+        <text class="empty-text">今天没有到期的词 🎈 明天再来</text>
+      </view>
+    </view>
+
+    <!-- 爬楼梯：把调度算法画出来给孩子看 -->
+    <view class="card">
+      <view class="card-head">
+        <text class="card-title">爬楼梯</text>
+        <text class="card-sub">{{mastered}} 词住进顶层</text>
+      </view>
+      <view class="floor" wx:for="{{floors}}" wx:key="box">
+        <view class="floor-top">
+          <text class="floor-name">{{item.name}}</text>
+          <text class="floor-count">{{item.count}}</text>
+        </view>
+        <view class="floor-bar">
+          <view class="floor-fill" style="width: {{item.pct}}%"></view>
+        </view>
+        <text class="floor-sample">{{item.sample}}</text>
+      </view>
+      <text class="floor-hint">答对上一层，答错掉一半 —— 不会被打回一楼</text>
+    </view>
+
+    <!-- 连续打卡 -->
+    <view class="card">
+      <view class="streak-row">
+        <text class="streak-flame">🔥</text>
+        <view class="streak-info">
+          <text class="streak-num">连续 {{streakCurrent}} 天</text>
+          <text class="streak-sub">最长 {{streakBest}} 天 · 护盾 {{shields}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 家长周报 -->
+    <view class="card">
+      <view class="card-head">
+        <text class="card-title">家长周报</text>
+        <text class="card-sub">最近 7 天</text>
+      </view>
+      <view class="kv" wx:for="{{report}}" wx:key="k">
+        <text class="kv-k">{{item.k}}</text>
+        <text class="kv-v">{{item.v}}</text>
+      </view>
+      <text class="stubborn" wx:if="{{stubborn}}">需要多陪一会儿：{{stubborn}}</text>
+    </view>
+
+    <!-- 开发期工具：上线前整卡删掉（见 data/clock.ts 的 TIME_TRAVEL） -->
+    <view class="card card-dev" wx:if="{{timeTravel}}">
+      <view class="card-head">
+        <text class="card-title">开发者工具</text>
+        <text class="card-sub">日期偏移 {{dayOffset}} 天</text>
+      </view>
+      <text class="dev-note">间隔重复要跨天才看得见：+1 天再进来，就知道该复习哪些词了。</text>
+      <view class="dev-row">
+        <view class="dev-btn" hover-class="cta-hover" bindtap="advance" data-days="1">
+          <text class="dev-btn-text">+1 天</text>
+        </view>
+        <view class="dev-btn" hover-class="cta-hover" bindtap="advance" data-days="5">
+          <text class="dev-btn-text">+5 天</text>
+        </view>
+        <view class="dev-btn dev-btn-warn" hover-class="cta-hover" bindtap="reset">
+          <text class="dev-btn-text">清空进度</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="tail"></view>
+  </scroll-view>
+</view>

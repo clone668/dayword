@@ -1,0 +1,56 @@
+/**
+ * 全局样式 + 明暗两套配色。
+ *
+ * 视觉走 Anthropic 那套，底色定在 #f7f1df（偏黄的暖米白），所以整套中性色都
+ * 往暖里偏了 —— 深色也不是中性黑而是暖褐黑，否则两套主题看着像两个 app。
+ * 强调色只有赤陶一种，发丝边框代替阴影，层级靠留白和字号建立。
+ *
+ * 圆角是单个变量 --r（0.3rem ≈ 4.8px ≈ 10rpx），要整体调只改这一处。
+ * 只有细进度条不用它：10rpx 圆角压在 10rpx 高的条上会变成胶囊。
+ * 密度按"紧凑"排：间距和字号都收了一档，但触控目标一律保 88rpx（44px）不动 ——
+ * 那是可用性下限，不是留白。
+ *
+ * 所有颜色都走 CSS 变量：浅色定义在 .page 上，深色由根节点追加的 .dark 覆盖
+ * （同一元素上的两个单类选择器，靠书写顺序决定谁赢）。为什么只能这么写，
+ * 见 data/theme.ts 的文件注释 —— Skyline 既没有媒体查询也没有后代选择器。
+ *
+ * 其余 Skyline 约束照旧：单类选择器 + flexbox + rpx，不用 *、后代选择器、float。
+ * 渲染异常时把 app.json 的 "renderer" 从 skyline 改成 webview 即可回退。
+ */
+
+.page {
+  /* ---- 浅色（默认） ---- */
+  --bg: #f7f1df; /* 纸面底色，用户指定 */
+  --surface: #fdfaf2; /* 卡片：比底色再亮一档，不用纯白 */
+  --surface-2: #ece3ca; /* 进度槽、次级填充 */
+  --line: #e4dabd; /* 发丝边框 */
+  --fg: #211e16; /* 正文，暖褐黑而不是纯黑 */
+  --fg-2: #5c5747; /* 次要 */
+  --fg-3: #736c58; /* 提示。再浅就过不了 4.5:1 了 */
+  --accent: #d97757; /* 装饰性填充：进度条、楼层条 */
+  --btn-bg: #ad5228; /* 按钮底比装饰色深一档，才压得住白字（5.2:1） */
+  --btn-fg: #ffffff;
+  --ghost-bg: #ece3ca;
+  --ghost-fg: #413c2e;
+  --tint: #f7e4d4; /* 提示条 */
+  --tint-fg: #8a4526;
+  --ok-bg: #e6ebd5; /* 偏橄榄的浅绿，比薄荷绿更贴这张暖底 */
+  --ok-fg: #455230;
+  --no-bg: #f7ded4;
+  --no-fg: #8f3a1e;
+  --warn-bg: #f5e7c4;
+  --warn-fg: #6d4f14;
+  --serif: Georgia, "Times New Roman", "Songti SC", serif;
+  --r: 10rpx;
+
+  /* 页面根容器：竖向 flex，顶栏定高、内容区吃掉剩余高度 */
+  height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-size: 28rpx;
+}
+
+/* @@REST@@ */

@@ -1,0 +1,31 @@
+{
+  // 给微信开发者工具的 TypeScript 编译插件用的（project.config.json 里的
+  // setting.useCompilerPlugins: ["typescript"]）。它从 miniprogramRoot 往上找
+  // tsconfig.json，所以这份必须放在 miniprogram/ 里，否则会捡到根目录那份 ——
+  // 那份是给 node 侧（core/tests/tools）的，带 "noEmit" 和 "types": ["node"]，
+  // 结果是每个 wx.* 都报错、而且一个 .js 都不产出。
+  //
+  // 根目录那份不能直接复用，也不只是 types 的问题：
+  // verbatimModuleSyntax + module: CommonJS 是互斥的（TS 会直接报错）。
+  // 所以这里不 extends，独立写一份。
+  //
+  // 类型检查仍然由 `npm run typecheck` 跑（tsconfig.miniprogram.json，
+  // 同一套严格开关 + Bundler 解析）；这份只负责让开发者工具能编译出 .js。
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    // 小程序运行时原生是 CommonJS。源码里 import 写的是 './words.js'
+    // （文件其实是 words.ts），编译后 require('./words.js') 正好命中产物，
+    // 不依赖开发者工具的 ESM 转换。
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "types": ["miniprogram-api-typings"]
+  },
+  "include": ["./**/*.ts"]
+}
