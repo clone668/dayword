@@ -53,4 +53,384 @@
   font-size: 28rpx;
 }
 
-/* @@REST@@ */
+/**
+ * 深色。只覆盖变量 —— 布局属性一条都不用重复写。
+ * 中性色带一点棕黄，和浅色的 #f7f1df 同源；纯灰配上赤陶会显脏。
+ */
+.dark {
+  --bg: #1c1a15;
+  --surface: #24211a;
+  --surface-2: #322e24;
+  --line: #3d3830;
+  --fg: #f5f0e2;
+  --fg-2: #b8b2a0;
+  --fg-3: #8f887a;
+  --accent: #e0895f; /* 深底上把赤陶提亮一档，否则装饰条看不见 */
+  --btn-bg: #e0895f; /* 深色下珊瑚够亮，压深字（6.3:1）比压白字对比度高一倍 */
+  --btn-fg: #201d16;
+  --ghost-bg: #322e24;
+  --ghost-fg: #e8e2d2;
+  --tint: #3a2a1e;
+  --tint-fg: #edb492;
+  --ok-bg: #2b3122;
+  --ok-fg: #b0c793;
+  --no-bg: #3b241b;
+  --no-fg: #f0a68b;
+  --warn-bg: #362d18;
+  --warn-fg: #dfc07f;
+}
+
+/* 唯一的滚动容器。min-height: 0 不能省，否则 flex 子项不肯收缩、页面整体被撑高 */
+.body {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- 顶栏 ---- */
+
+.bar {
+  padding-left: 32rpx;
+  padding-right: 24rpx;
+  padding-bottom: 14rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bar-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.bar-title {
+  font-family: var(--serif);
+  font-size: 34rpx;
+  color: var(--fg);
+}
+
+.bar-level {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: var(--fg-3);
+  letter-spacing: 1rpx;
+}
+
+/* 88rpx = 44px，触控目标的下限，紧凑密度也不能再小 */
+.theme-btn {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: var(--r);
+  border: 1rpx solid var(--line);
+  background-color: var(--surface);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-btn-text {
+  font-size: 32rpx;
+  color: var(--fg-2);
+}
+
+/* 滚动到底时的呼吸位。紧凑密度下从 80rpx 收到 48rpx */
+.tail {
+  height: 48rpx;
+}
+
+/* ---- 卡片 ---- */
+
+.card {
+  margin: 14rpx 24rpx;
+  padding: 24rpx;
+  box-sizing: border-box;
+  background-color: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: var(--r);
+  display: flex;
+  flex-direction: column;
+}
+
+.card-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.card-title {
+  font-family: var(--serif);
+  font-size: 30rpx;
+  color: var(--fg);
+}
+
+.card-sub {
+  font-size: 22rpx;
+  color: var(--fg-3);
+}
+
+/* 卡片里的说明段落。首页的定级入口和定级页的开场都要用 */
+.para {
+  margin-bottom: 12rpx;
+  font-size: 26rpx;
+  color: var(--fg-2);
+  line-height: 38rpx;
+}
+
+/* ---- 按钮 ---- */
+
+.cta {
+  margin-top: 24rpx;
+  height: 88rpx;
+  border-radius: var(--r);
+  background-color: var(--btn-bg);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Skyline 没有 :active，按下态只能靠 hover-class */
+.cta-hover {
+  opacity: 0.82;
+}
+
+.cta-disabled {
+  opacity: 0.55;
+}
+
+.cta-text {
+  color: var(--btn-fg);
+  font-size: 30rpx;
+  font-weight: bold;
+}
+
+.cta-ghost {
+  background-color: var(--ghost-bg);
+}
+
+.cta-ghost-text {
+  color: var(--ghost-fg);
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+/* ---- 键值行（周报） ---- */
+
+.kv {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding-top: 10rpx;
+  padding-bottom: 10rpx;
+  border-top: 1rpx solid var(--line);
+}
+
+.kv-k {
+  font-size: 26rpx;
+  color: var(--fg-2);
+}
+
+.kv-v {
+  font-size: 26rpx;
+  color: var(--fg);
+}
+
+/**
+ * ---- 答题界面的公共零件 ----
+ *
+ * 这一段原本只在 learn/index.wxss 里。定级页也要出题，而**页面 WXSS 不跨页共享**
+ * （只有 app.wxss 是全局的），所以两个页面都用到的规则必须搬上来 ——
+ * 否则定级页会长成一堆没有样式的裸文字，而且不报错。
+ */
+
+/* 返回。撑到 88rpx 是为了够得着（原来只有文字高度约 50rpx），
+   顺带让学习/定级页的顶栏和首页那颗 88rpx 的主题按钮一样高 —— 页面间不再跳 */
+.back {
+  min-height: 88rpx;
+  padding-right: 16rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.back-text {
+  font-size: 30rpx;
+  color: var(--fg-2);
+}
+
+/* 细进度条不用 --r：10rpx 圆角压在 6rpx 高的条上会变成胶囊 */
+.pbar {
+  margin: 0 32rpx 10rpx 32rpx;
+  height: 6rpx;
+  border-radius: 2rpx;
+  background-color: var(--surface-2);
+  display: flex;
+  flex-direction: row;
+}
+
+.pfill {
+  height: 6rpx;
+  border-radius: 2rpx;
+  background-color: var(--accent);
+}
+
+.loading {
+  padding: 60rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: var(--fg-3);
+}
+
+.q-hint {
+  font-size: 24rpx;
+  color: var(--fg-3);
+  letter-spacing: 1rpx;
+  margin-bottom: 16rpx;
+}
+
+.q-title {
+  font-family: var(--serif);
+  font-size: 46rpx;
+  color: var(--fg);
+  margin-top: 12rpx;
+}
+
+.q-sub {
+  font-size: 26rpx;
+  color: var(--fg-2);
+  margin-top: 8rpx;
+}
+
+.q-degrade {
+  margin-top: 12rpx;
+  padding: 12rpx 16rpx;
+  box-sizing: border-box;
+  background-color: var(--warn-bg);
+  border-radius: var(--r);
+  font-size: 22rpx;
+  color: var(--warn-fg);
+  line-height: 30rpx;
+}
+
+.stem-img {
+  width: 100%;
+  height: 260rpx;
+  border-radius: var(--r);
+}
+
+/* 配图还没接入时的替身。真机上下载失败也走这条路径 */
+.stem-fallback {
+  height: 160rpx;
+  border-radius: var(--r);
+  background-color: var(--surface-2);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.stem-fallback-text {
+  font-family: var(--serif);
+  font-size: 38rpx;
+  color: var(--fg-2);
+}
+
+.audio {
+  margin-top: 16rpx;
+  height: 88rpx;
+  border-radius: var(--r);
+  border: 1rpx solid var(--line);
+  background-color: var(--ghost-bg);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.audio-text {
+  font-size: 30rpx;
+  color: var(--ghost-fg);
+}
+
+.opts {
+  margin: 0 24rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+/* min-height 88rpx 是硬下限，padding 可以收 */
+.opt {
+  margin-bottom: 12rpx;
+  padding: 20rpx;
+  min-height: 88rpx;
+  box-sizing: border-box;
+  background-color: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: var(--r);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 判分后覆盖底色和边框。同一元素上的第二个单类选择器，Skyline 认这种写法 */
+.opt-right {
+  background-color: var(--ok-bg);
+  border-color: var(--ok-fg);
+}
+
+.opt-wrong {
+  background-color: var(--no-bg);
+  border-color: var(--no-fg);
+}
+
+/**
+ * 定级页的"已选中"。刻意既不是绿也不是红 —— 那一页不告诉孩子对错
+ * （见 pages/placement/index.ts 文件头第 2 条），只回应"我点到了"。
+ * 和 .opt-right/.opt-wrong 放一起是为了保证书写顺序在 .opt 之后。
+ */
+.opt-picked {
+  background-color: var(--tint);
+  border-color: var(--accent);
+}
+
+.opt-img {
+  width: 100%;
+  height: 160rpx;
+  margin-bottom: 12rpx;
+}
+
+.opt-text {
+  font-size: 32rpx;
+  color: var(--fg);
+}
+
+/* 提示条。首页用来说"暂停发新词"，定级页用来说"词库上限" */
+.notice {
+  margin-top: 16rpx;
+  padding: 16rpx 20rpx;
+  box-sizing: border-box;
+  background-color: var(--tint);
+  border-radius: var(--r);
+}
+
+.notice-text {
+  font-size: 24rpx;
+  color: var(--tint-fg);
+  line-height: 34rpx;
+}
+
+.done-title {
+  font-family: var(--serif);
+  font-size: 38rpx;
+  color: var(--fg);
+  margin-bottom: 18rpx;
+}

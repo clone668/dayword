@@ -1,115 +1,10 @@
-/* 学习页。配色全部走 app.wxss 的变量，深浅两套共用这一份规则。 */
-
-.back {
-  padding-top: 12rpx;
-  padding-bottom: 12rpx;
-  padding-right: 20rpx;
-}
-
-.back-text {
-  font-size: 30rpx;
-  color: var(--fg-2);
-}
-
-.pbar {
-  margin: 0 40rpx 12rpx 40rpx;
-  height: 8rpx;
-  border-radius: 4rpx;
-  background-color: var(--surface-2);
-  display: flex;
-  flex-direction: row;
-}
-
-.pfill {
-  height: 8rpx;
-  border-radius: 4rpx;
-  background-color: var(--accent);
-}
-
-.loading {
-  padding: 80rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.loading-text {
-  font-size: 28rpx;
-  color: var(--fg-3);
-}
-
-/* ---- 题干 ---- */
-
-.q-hint {
-  font-size: 24rpx;
-  color: var(--fg-3);
-  letter-spacing: 1rpx;
-  margin-bottom: 24rpx;
-}
-
-.q-title {
-  font-family: var(--serif);
-  font-size: 56rpx;
-  color: var(--fg);
-  margin-top: 16rpx;
-}
-
-.q-sub {
-  font-size: 26rpx;
-  color: var(--fg-2);
-  margin-top: 12rpx;
-}
-
-.q-degrade {
-  margin-top: 16rpx;
-  padding: 16rpx 20rpx;
-  box-sizing: border-box;
-  background-color: var(--warn-bg);
-  border-radius: 12rpx;
-  font-size: 22rpx;
-  color: var(--warn-fg);
-  line-height: 32rpx;
-}
-
-.stem-img {
-  width: 100%;
-  height: 320rpx;
-  border-radius: 12rpx;
-}
-
-/* 配图还没接入时的替身。真机上下载失败也走这条路径 */
-.stem-fallback {
-  height: 200rpx;
-  border-radius: 12rpx;
-  background-color: var(--surface-2);
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-}
-
-.stem-fallback-text {
-  font-family: var(--serif);
-  font-size: 44rpx;
-  color: var(--fg-2);
-}
-
-.audio {
-  margin-top: 24rpx;
-  height: 88rpx;
-  border-radius: 14rpx;
-  border: 1rpx solid var(--line);
-  background-color: var(--ghost-bg);
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-}
-
-.audio-text {
-  font-size: 30rpx;
-  color: var(--ghost-fg);
-}
+/**
+ * 学习页专有样式。
+ *
+ * 答题界面的公共零件（.q-* / .opt* / .stem-* / .audio* / .pbar / .back / .loading*）
+ * 都在 app.wxss 里 —— 定级页也要用，而页面 WXSS 不跨页共享。
+ * 这里只留学习页独有的：教学卡、拼字母、输入框、判分反馈、结算。
+ */
 
 /* ---- 教学卡 ---- */
 
@@ -119,89 +14,45 @@
   font-size: 22rpx;
   color: var(--tint-fg);
   letter-spacing: 2rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 14rpx;
 }
 
 .teach-word {
-  margin-top: 28rpx;
+  margin-top: 20rpx;
   font-family: var(--serif);
-  font-size: 72rpx;
+  font-size: 60rpx;
   color: var(--fg);
 }
 
 .teach-zh {
-  margin-top: 20rpx;
+  margin-top: 14rpx;
   font-size: 32rpx;
   color: var(--fg-2);
 }
 
 .teach-ex {
-  margin-top: 28rpx;
-  padding-top: 24rpx;
+  margin-top: 20rpx;
+  padding-top: 18rpx;
   border-top: 1rpx solid var(--line);
   font-size: 28rpx;
   color: var(--fg-2);
-  line-height: 42rpx;
+  line-height: 40rpx;
 }
 
 .teach-ex-zh {
   margin-top: 8rpx;
   font-size: 24rpx;
   color: var(--fg-3);
-  line-height: 36rpx;
-}
-
-/* ---- 选项 ---- */
-
-.opts {
-  margin: 0 28rpx;
-  display: flex;
-  flex-direction: column;
-}
-
-.opt {
-  margin-bottom: 16rpx;
-  padding: 28rpx;
-  min-height: 88rpx;
-  box-sizing: border-box;
-  background-color: var(--surface);
-  border: 1rpx solid var(--line);
-  border-radius: 14rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 判分后覆盖底色和边框。同一元素上的第二个单类选择器，Skyline 认这种写法 */
-.opt-right {
-  background-color: var(--ok-bg);
-  border-color: var(--ok-fg);
-}
-
-.opt-wrong {
-  background-color: var(--no-bg);
-  border-color: var(--no-fg);
-}
-
-.opt-img {
-  width: 100%;
-  height: 200rpx;
-  margin-bottom: 16rpx;
-}
-
-.opt-text {
-  font-size: 34rpx;
-  color: var(--fg);
+  line-height: 34rpx;
 }
 
 /* ---- 点字母拼写 ---- */
 
 .spell-out {
-  min-height: 116rpx;
-  padding: 12rpx;
+  min-height: 104rpx;
+  padding: 10rpx;
   box-sizing: border-box;
-  border-radius: 12rpx;
+  border-radius: var(--r);
   border: 1rpx dashed var(--line);
   background-color: var(--bg);
   display: flex;
@@ -213,22 +64,23 @@
 .spell-empty {
   font-size: 24rpx;
   color: var(--fg-3);
-  padding-left: 12rpx;
+  padding-left: 10rpx;
 }
 
 .spell-pool {
-  margin-top: 28rpx;
+  margin-top: 20rpx;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
 }
 
-/* 88rpx = 44px：触控目标的下限。小孩的手指比大人还难瞄准 */
+/* 88rpx = 44px：触控目标的下限。小孩的手指比大人还难瞄准，
+   所以紧凑密度只收字母块之间的间距（8rpx → 6rpx），块本身不动 */
 .chip {
-  margin: 8rpx;
+  margin: 6rpx;
   width: 88rpx;
   height: 88rpx;
-  border-radius: 12rpx;
+  border-radius: var(--r);
   border: 1rpx solid var(--line);
   background-color: var(--ghost-bg);
   display: flex;
@@ -243,34 +95,34 @@
 
 .chip-text {
   font-family: var(--serif);
-  font-size: 36rpx;
+  font-size: 34rpx;
   color: var(--ghost-fg);
 }
 
 /* ---- 输入 ---- */
 
 .input {
-  height: 96rpx;
-  padding: 0 24rpx;
+  height: 88rpx;
+  padding: 0 20rpx;
   box-sizing: border-box;
-  border-radius: 14rpx;
+  border-radius: var(--r);
   border: 1rpx solid var(--line);
   background-color: var(--bg);
-  font-size: 36rpx;
+  font-size: 34rpx;
   color: var(--fg);
 }
 
 .submit-wrap {
-  margin: 0 28rpx;
+  margin: 0 24rpx;
 }
 
 /* ---- 反馈 ---- */
 
 .fb {
-  margin: 20rpx 28rpx;
-  padding: 28rpx;
+  margin: 14rpx 24rpx;
+  padding: 20rpx;
   box-sizing: border-box;
-  border-radius: 14rpx;
+  border-radius: var(--r);
   display: flex;
   flex-direction: column;
 }
@@ -294,23 +146,16 @@
 
 .fb-text {
   font-size: 30rpx;
-  line-height: 44rpx;
+  line-height: 40rpx;
 }
 
 /* ---- 结算 ---- */
 
-.done-title {
-  font-family: var(--serif);
-  font-size: 44rpx;
-  color: var(--fg);
-  margin-bottom: 24rpx;
-}
-
 .levelup {
-  margin-bottom: 20rpx;
-  padding: 24rpx;
+  margin-bottom: 14rpx;
+  padding: 18rpx;
   box-sizing: border-box;
-  border-radius: 12rpx;
+  border-radius: var(--r);
   background-color: var(--tint);
   display: flex;
   flex-direction: row;
@@ -318,7 +163,7 @@
 }
 
 .levelup-text {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: bold;
   color: var(--tint-fg);
 }

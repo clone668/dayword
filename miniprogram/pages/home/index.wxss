@@ -1,4 +1,4 @@
-/* 首页。配色全部走 app.wxss 的变量，深浅两套共用这一份规则。 */
+/* 首页。配色和圆角全部走 app.wxss 的变量，深浅两套共用这一份规则。 */
 
 .task-row {
   display: flex;
@@ -12,39 +12,26 @@
   align-items: center;
 }
 
-/* 数字用衬线体：Anthropic 那种"排版感"主要就来自这里 */
+/* 数字用衬线体：Anthropic 那种"排版感"主要就来自这里。
+   紧凑密度下从 68rpx 收到 58rpx —— 还是全页最大的字，层级不会塌 */
 .task-num {
   font-family: var(--serif);
-  font-size: 68rpx;
+  font-size: 58rpx;
   color: var(--fg);
-  line-height: 80rpx;
+  line-height: 68rpx;
 }
 
 .task-label {
-  margin-top: 8rpx;
+  margin-top: 6rpx;
   font-size: 22rpx;
   color: var(--fg-3);
   letter-spacing: 1rpx;
 }
 
-.notice {
-  margin-top: 24rpx;
-  padding: 20rpx 24rpx;
-  box-sizing: border-box;
-  background-color: var(--tint);
-  border-radius: 12rpx;
-}
-
-.notice-text {
-  font-size: 24rpx;
-  color: var(--tint-fg);
-  line-height: 36rpx;
-}
-
-/* .cta / .cta-hover / .cta-text / .kv* 在 app.wxss 里，两个页面共用 */
+/* .notice* / .cta* / .kv* 都在 app.wxss 里 —— 三个页面共用 */
 
 .empty {
-  margin-top: 28rpx;
+  margin-top: 20rpx;
   align-items: center;
   display: flex;
   flex-direction: column;
@@ -58,7 +45,7 @@
 /* ---- 爬楼梯 ---- */
 
 .floor {
-  margin-bottom: 24rpx;
+  margin-bottom: 16rpx;
   display: flex;
   flex-direction: column;
 }
@@ -81,35 +68,36 @@
   color: var(--fg-3);
 }
 
-/* 条形做方一点（4rpx 而不是 10rpx）—— 圆头条会显得像游戏进度条 */
+/* 这两条不用 --r：10rpx 圆角压在 10rpx 高的条上会变成胶囊，
+   而且圆头条看着像游戏进度条，不是这套视觉要的东西 */
 .floor-bar {
-  margin-top: 10rpx;
-  height: 14rpx;
-  border-radius: 4rpx;
+  margin-top: 8rpx;
+  height: 10rpx;
+  border-radius: 3rpx;
   background-color: var(--surface-2);
   display: flex;
   flex-direction: row;
 }
 
 .floor-fill {
-  height: 14rpx;
-  border-radius: 4rpx;
+  height: 10rpx;
+  border-radius: 3rpx;
   background-color: var(--accent);
 }
 
 .floor-sample {
-  margin-top: 10rpx;
+  margin-top: 6rpx;
   font-size: 22rpx;
   color: var(--fg-3);
 }
 
 .floor-hint {
-  margin-top: 8rpx;
-  padding-top: 20rpx;
+  margin-top: 4rpx;
+  padding-top: 16rpx;
   border-top: 1rpx solid var(--line);
   font-size: 22rpx;
   color: var(--fg-3);
-  line-height: 34rpx;
+  line-height: 32rpx;
 }
 
 /* ---- 连续打卡 ---- */
@@ -121,8 +109,8 @@
 }
 
 .streak-flame {
-  font-size: 52rpx;
-  margin-right: 28rpx;
+  font-size: 44rpx;
+  margin-right: 20rpx;
 }
 
 .streak-info {
@@ -132,12 +120,12 @@
 
 .streak-num {
   font-family: var(--serif);
-  font-size: 36rpx;
+  font-size: 32rpx;
   color: var(--fg);
 }
 
 .streak-sub {
-  margin-top: 8rpx;
+  margin-top: 6rpx;
   font-size: 24rpx;
   color: var(--fg-3);
 }
@@ -145,14 +133,14 @@
 /* ---- 家长周报 ---- */
 
 .stubborn {
-  margin-top: 20rpx;
-  padding: 18rpx 22rpx;
+  margin-top: 14rpx;
+  padding: 14rpx 18rpx;
   box-sizing: border-box;
   background-color: var(--no-bg);
-  border-radius: 12rpx;
+  border-radius: var(--r);
   font-size: 24rpx;
   color: var(--no-fg);
-  line-height: 36rpx;
+  line-height: 34rpx;
 }
 
 /* ---- 开发者工具 ---- */
@@ -165,8 +153,8 @@
 .dev-note {
   font-size: 22rpx;
   color: var(--fg-3);
-  line-height: 34rpx;
-  margin-bottom: 20rpx;
+  line-height: 32rpx;
+  margin-bottom: 14rpx;
 }
 
 .dev-row {
@@ -174,11 +162,12 @@
   flex-direction: row;
 }
 
+/* 88rpx 不动：紧凑密度收的是留白，不是能不能点中 */
 .dev-btn {
   flex: 1;
-  margin-right: 14rpx;
+  margin-right: 12rpx;
   height: 88rpx;
-  border-radius: 12rpx;
+  border-radius: var(--r);
   border: 1rpx solid var(--line);
   background-color: var(--surface);
   display: flex;

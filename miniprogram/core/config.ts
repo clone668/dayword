@@ -45,6 +45,13 @@ export const LEVEL_THEME: Record<Level, ThemeId> = {
   6: 'agent',
 };
 
+/** 皮肤的中文名。放在这里而不是各页面里，免得首页叫"探险"、定级页叫"探险家"。 */
+export const THEME_NAME: Record<ThemeId, string> = {
+  farm: '农场',
+  explorer: '探险',
+  agent: '特工',
+};
+
 export function configFor(level: Level): LevelConfig {
   return LEVEL_CONFIG[level];
 }

@@ -5,12 +5,13 @@
  * 任何"今天该学什么"的判断都不在这里（见 data/plan.ts）——
  * 首页和学习页各算一遍的话，两边显示不一致，而且不会报错。
  */
-import { LEVEL_THEME, type ThemeId } from '../../core/config.js';
+import { LEVEL_THEME, THEME_NAME } from '../../core/config.js';
 import { MASTERED_BOX } from '../../core/srs.js';
 import { stairsView, weekReport } from '../../core/stats.js';
 import { startOfDay } from '../../core/time.js';
 import { advance as advanceDays, dayOffset, now, TIME_TRAVEL } from '../../data/clock.js';
 import { planToday } from '../../data/plan.js';
+import { MAX_PROBE_LEVEL, PROBE_TOTAL } from '../../data/probe.js';
 import { loadSnapshot, repo } from '../../data/store.js';
 import {
   cycle as cycleTheme,
@@ -22,8 +23,6 @@ import {
   scheme,
 } from '../../data/theme.js';
 import { WORD_BY_ID } from '../../data/words.js';
-
-const THEME_NAME: Record<ThemeId, string> = { farm: '农场', explorer: '探险', agent: '特工' };
 
 /**
  * 每个词平均要花的秒数（含会话内重试）。
@@ -50,6 +49,12 @@ interface Data {
   /** 根节点的配色 class：'' 或 'dark' */
   themeCls: string;
   themeGlyph: string;
+  /** 已做过定级测试。false 时首页顶上挂一张定级卡 */
+  placed: boolean;
+  /** 定级能测到的最高等级（受词库限制），只用于定级卡的文案 */
+  maxProbeLevel: number;
+  /** 定级大约多少题，同样只是文案 */
+  probeTotal: number;
   level: number;
   /** 等级对应的关卡主题名（农场/探险/特工），和明暗主题无关 */
   levelTheme: string;
@@ -72,12 +77,19 @@ interface Data {
   todayText: string;
   dayOffset: number;
   timeTravel: boolean;
+  loading: boolean;
+  errorText: string;
 }
 
 const initial: Data = {
   statusBar: 20,
   themeCls: pageClass(),
   themeGlyph: MODE_GLYPH[themeMode()],
+  // 默认 true：refresh() 之前先不要闪出定级卡。已定级的人占绝大多数，
+  // "闪一下又消失"比"晚半帧出现"扎眼得多
+  placed: true,
+  maxProbeLevel: MAX_PROBE_LEVEL,
+  probeTotal: PROBE_TOTAL,
   level: 1,
   levelTheme: '',
   newCount: 0,
@@ -99,6 +111,8 @@ const initial: Data = {
   todayText: '',
   dayOffset: 0,
   timeTravel: TIME_TRAVEL,
+  loading: true,
+  errorText: '',
 };
 
 const textOf = (wordId: string) => WORD_BY_ID.get(wordId)?.text ?? wordId;
@@ -123,6 +137,7 @@ Page({
 
   /** wx.onThemeChange 的取消函数。全局注册，不取消就会越积越多 */
   offTheme: null as (() => void) | null,
+  refreshId: 0,
 
   onLoad() {
     this.setData({ statusBar: wx.getWindowInfo().statusBarHeight });
@@ -159,8 +174,12 @@ Page({
   },
 
   async refresh() {
-    const snap = await loadSnapshot();
-    const at = now();
+    const request = ++this.refreshId;
+    this.setData({ loading: true, errorText: '' });
+    try {
+      const snap = await loadSnapshot();
+      if (request !== this.refreshId) return;
+      const at = now();
     const plan = planToday(snap, at);
     const w = weekReport(snap.logs, snap.states, at);
     // 分母为 0 时 weekReport 返回 0，渲染成 "0%" 会让家长以为孩子全错，
@@ -168,6 +187,7 @@ Page({
     const hasReview = snap.logs.some((l) => l.firstTryTotal > 0);
 
     this.setData({
+      placed: snap.profile.placed,
       level: snap.profile.level.level,
       levelTheme: THEME_NAME[LEVEL_THEME[snap.profile.level.level]],
       newCount: plan.newIds.length,
@@ -195,28 +215,61 @@ Page({
       stubborn: w.stubborn.map((s) => `${textOf(s.wordId)}(错${s.lapses}次)`).join('、'),
       todayText: new Date(at).toLocaleDateString('zh-CN'),
       dayOffset: dayOffset(),
+      loading: false,
+      errorText: '',
     });
+    } catch (error) {
+      if (request !== this.refreshId) return;
+      console.error('[dayword] 首页加载失败', error);
+      this.setData({ loading: false, errorText: '学习数据暂时读不到，请重试。原有进度不会被清空。' });
+    }
+  },
+
+  retry() {
+    void this.refresh();
   },
 
   start() {
+    if (this.data.loading || this.data.errorText !== '') return;
     void wx.navigateTo({ url: '/pages/learn/index' });
   },
 
+  /**
+   * 去定级。用 navigateTo 而不是 reLaunch：中途退出要能原样退回首页。
+   * 测完由定级页自己 reLaunch 回来（首页得拿新等级重算今日任务）。
+   * 开发者工具里的「重新定级」走的也是这里 —— 重测对家长不是需求，
+   * 等级漂移由 core/level.ts 的控制器自己纠。
+   */
+  place() {
+    if (this.data.loading || this.data.errorText !== '') return;
+    void wx.navigateTo({ url: '/pages/placement/index' });
+  },
+
   advance(e: WechatMiniprogram.TouchEvent) {
+    if (this.data.loading) return;
     advanceDays(Number(e.currentTarget.dataset.days) || 1);
     void this.refresh();
   },
 
   reset() {
+    if (this.data.loading) return;
     wx.showModal({
       title: '清空进度',
       content: '所有学习记录、连续打卡和日期偏移都会删掉，无法恢复。',
       // 原生弹窗吃不到 CSS 变量，只能自己按主题挑一个。
       // 注意：弹窗底色是微信按**系统**深色模式决定的，用户手动强制的浅/深管不到它
-      confirmColor: scheme() === 'dark' ? '#d97757' : '#b3542f',
+      confirmColor: scheme() === 'dark' ? '#e0895f' : '#ad5228',
       success: (res) => {
         if (!res.confirm) return;
-        void repo.clear().then(() => this.refresh());
+        this.setData({ loading: true });
+        void repo.clear().then(
+          () => this.refresh(),
+          (error) => {
+            console.error('[dayword] 清空进度失败', error);
+            this.setData({ loading: false });
+            wx.showToast({ title: '清空失败，原进度仍保留', icon: 'none' });
+          },
+        );
       },
     });
   },

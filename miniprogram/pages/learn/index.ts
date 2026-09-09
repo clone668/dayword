@@ -26,13 +26,23 @@ import { upsertLog } from '../../core/stats.js';
 import { checkIn, type CheckInOutcome } from '../../core/streak.js';
 import { addDays, startOfDay } from '../../core/time.js';
 import type { Answer, Word, WordState } from '../../core/types.js';
+import { playAudio, stopAudio } from '../../data/audio.js';
+import { hasMedia, imageUrl } from '../../data/cdn.js';
 import { now } from '../../data/clock.js';
-import { hasMedia, imageUrl, playAudio } from '../../data/media.js';
 import { planToday } from '../../data/plan.js';
-import { loadSnapshot, saveSnapshot, type Snapshot } from '../../data/store.js';
+import { MAX_PROBE_LEVEL } from '../../data/probe.js';
+import { viewOf, type QuizView } from '../../data/quizview.js';
+import type { LearningDraft } from '../../data/repository.js';
+import {
+  loadDraft,
+  loadSnapshot,
+  removeDraft,
+  saveDraft,
+  saveSnapshot,
+  type Snapshot,
+} from '../../data/store.js';
 import { onSystemChange, pageClass } from '../../data/theme.js';
 import { WORD_BY_ID, wordsUpToLevel } from '../../data/words.js';
-import { viewOf, type QuizView } from './view.js';
 
 /** 答对后自动进入下一题的停留时间（毫秒）。答错不自动跳 —— 见 next() */
 const RIGHT_PAUSE_MS = 700;
@@ -68,12 +78,17 @@ interface Summary {
   level: number;
 }
 
+type RetryAction = 'none' | 'begin' | 'teach' | 'answer' | 'settle';
+
 interface Data {
   statusBar: number;
   /** 根节点的配色 class：'' 或 'dark'（见 data/theme.ts） */
   themeCls: string;
-  phase: 'loading' | 'teach' | 'quiz' | 'done';
+  phase: 'loading' | 'teach' | 'quiz' | 'done' | 'error';
   hasMedia: boolean;
+  busy: boolean;
+  errorText: string;
+  retryAction: RetryAction;
   done: number;
   total: number;
   pctDone: number;
@@ -94,6 +109,9 @@ const initial: Data = {
   themeCls: pageClass(),
   phase: 'loading',
   hasMedia,
+  busy: false,
+  errorText: '',
+  retryAction: 'none',
   done: 0,
   total: 0,
   pctDone: 0,
@@ -120,7 +138,9 @@ Page({
   /** 整节课固定的"现在"，只在 begin() 里取一次 */
   at: 0,
   session: null as SessionState | null,
-  /** wordId → 最新学习状态，边答边改，结算时一次性写盘 */
+  /** 这节课启动时已有的全量状态；草稿只需保存之后改动过的词。 */
+  baseStates: new Map<string, WordState>(),
+  /** wordId → 这节课改动过的最新状态。 */
   states: new Map<string, WordState>(),
   /** 干扰项词池 = 当前等级可见的全部词 */
   wordPool: [] as Word[],
@@ -136,7 +156,11 @@ Page({
   newCount: 0,
   reviewCount: 0,
   shownAt: 0,
-  startedAt: 0,
+  activeSeconds: 0,
+  visibleAt: 0,
+  answeredDraft: null as LearningDraft | null,
+  settleRetry: null as (() => Promise<void>) | null,
+  settleSummary: null as Summary | null,
   timer: 0,
   offTheme: null as (() => void) | null,
 
@@ -150,29 +174,112 @@ Page({
 
   onShow() {
     this.setData({ themeCls: pageClass() });
+    this.visibleAt = Date.now();
+  },
+
+  onHide() {
+    this.captureActiveTime();
+    void this.checkpointOnHide();
+  },
+
+  async checkpointOnHide() {
+    if (this.session === null || this.settleRetry !== null || isFinished(this.session)) return;
+    const draft = this.draftData(false);
+    try {
+      await saveDraft(draft);
+      this.answeredDraft = null;
+    } catch (error) {
+      console.error('[dayword] 后台断点保存失败', error);
+    }
   },
 
   onUnload() {
+    this.captureActiveTime();
     this.offTheme?.();
     this.offTheme = null;
+    stopAudio();
     if (this.timer !== 0) clearTimeout(this.timer);
   },
 
+  captureActiveTime() {
+    if (this.visibleAt === 0) return;
+    this.activeSeconds += Math.max(0, (Date.now() - this.visibleAt) / 1000);
+    this.visibleAt = 0;
+  },
+
+  draftData(resumeTimer = true): LearningDraft {
+    this.captureActiveTime();
+    if (resumeTimer) this.visibleAt = Date.now();
+    return {
+      id: `${this.at}`,
+      at: this.at,
+      session: this.session!,
+      states: [...this.states.values()],
+      firstTry: this.firstTry,
+      seen: this.seen,
+      asked: this.asked,
+      guesses: this.guesses,
+      newCount: this.newCount,
+      reviewCount: this.reviewCount,
+      activeSeconds: Math.round(this.activeSeconds),
+      updatedAt: Date.now(),
+    };
+  },
+
+  restoreDraft(draft: LearningDraft) {
+    this.at = draft.at;
+    this.session = draft.session;
+    this.baseStates = new Map(this.snap!.states.map((state) => [state.wordId, state]));
+    this.states = new Map(draft.states.map((state) => [state.wordId, state]));
+    this.firstTry = draft.firstTry;
+    this.seen = draft.seen;
+    this.asked = draft.asked;
+    this.guesses = draft.guesses;
+    this.newCount = draft.newCount;
+    this.reviewCount = draft.reviewCount;
+    this.activeSeconds = draft.activeSeconds;
+  },
+
   async begin() {
-    const snap = await loadSnapshot();
-    const at = now();
-    const plan = planToday(snap, at);
+    if (this.data.busy) return;
+    this.setData({ phase: 'loading', busy: true, errorText: '', retryAction: 'none' });
+    try {
+      const [snap, draft] = await Promise.all([loadSnapshot(), loadDraft()]);
+      this.snap = snap;
+      this.wordPool = wordsUpToLevel(snap.profile.level.level);
+      if (draft !== null && draft.session.queue.every((item) => WORD_BY_ID.has(item.wordId))) {
+        this.restoreDraft(draft);
+      } else {
+        if (draft !== null) await removeDraft();
+        this.at = now();
+        this.baseStates = new Map(snap.states.map((state) => [state.wordId, state]));
+        this.states = new Map();
+        const plan = planToday(snap, this.at);
+        this.session = startSession(plan.reviewIds, plan.newIds);
+        this.newCount = plan.newIds.length;
+        this.reviewCount = plan.reviewIds.length;
+        this.firstTry = [];
+        this.seen = [];
+        this.asked = 0;
+        this.guesses = 0;
+        this.activeSeconds = 0;
+        await saveDraft(this.draftData());
+      }
+      this.setData({ busy: false });
+      this.step();
+    } catch (error) {
+      console.error('[dayword] 学习会话加载失败', error);
+      this.setData({
+        phase: 'error',
+        busy: false,
+        errorText: '功课暂时打不开，进度没有丢。请重试。',
+        retryAction: 'begin',
+      });
+    }
+  },
 
-    this.snap = snap;
-    this.at = at;
-    this.states = new Map(snap.states.map((s) => [s.wordId, s]));
-    this.wordPool = wordsUpToLevel(snap.profile.level.level);
-    this.session = startSession(plan.reviewIds, plan.newIds);
-    this.newCount = plan.newIds.length;
-    this.reviewCount = plan.reviewIds.length;
-    this.startedAt = Date.now();
-
-    this.step();
+  retryBegin() {
+    void this.begin();
   },
 
   /** 走到队首那个词：新词先教，旧词直接考 */
@@ -194,6 +301,8 @@ Page({
     this.setData({
       phase: 'teach',
       quiz: null,
+      errorText: '',
+      retryAction: 'none',
       teach: {
         text: w.text,
         phonetic: w.phonetic,
@@ -207,15 +316,29 @@ Page({
     });
   },
 
-  learned() {
-    this.ask(current(this.session!)!.wordId);
+  async learned() {
+    if (this.data.busy) return;
+    this.setData({ busy: true, errorText: '', retryAction: 'none' });
+    try {
+      await saveDraft(this.draftData());
+      this.setData({ busy: false });
+      this.ask(current(this.session!)!.wordId);
+    } catch (error) {
+      console.error('[dayword] 教学卡断点保存失败', error);
+      this.setData({ busy: false, errorText: '断点保存失败，请重试后继续。', retryAction: 'teach' });
+    }
   },
 
   ask(wordId: string) {
     const word = wordOf(wordId);
-    const st = this.states.get(wordId) ?? newWordState(wordId, this.at);
+    const st = this.states.get(wordId) ?? this.baseStates.get(wordId) ?? newWordState(wordId, this.at);
     // 先定题型再出题：题型决定难度，这是等级唯一的作用通道（core/questions.ts）
-    const kind = pickKind(this.snap!.profile.level.level, st.box, Math.random);
+    const kind = pickKind(
+      this.snap!.profile.level.level,
+      st.box,
+      Math.random,
+      (candidate) => hasMedia || (candidate !== 'audio2image' && candidate !== 'dictation'),
+    );
     const q = buildQuestion(word, kind, this.wordPool, Math.random);
     const view = viewOf(q, wordOf);
 
@@ -234,6 +357,8 @@ Page({
       typed: '',
       feedback: 'none',
       fbText: '',
+      errorText: '',
+      retryAction: 'none',
       ...this.progressData(),
     });
   },
@@ -247,23 +372,26 @@ Page({
     };
   },
 
-  playWord() {
+  async playWord() {
     const w = this.currentWord;
     if (w === null) return;
-    if (!playAudio(w.audioKey)) {
+    if (!hasMedia) {
       wx.showToast({ title: '发音还没接入（CDN 未配置）', icon: 'none' });
+      return;
     }
+    const ok = await playAudio(w.audioKey);
+    if (!ok) wx.showToast({ title: `发音加载失败，先按音标读 ${w.phonetic}`, icon: 'none' });
   },
 
   /* ---- 三种作答方式，最后都汇到 judge() ---- */
 
   pick(e: WechatMiniprogram.TouchEvent) {
-    if (this.data.feedback !== 'none') return;
+    if (this.data.feedback !== 'none' || this.data.busy) return;
     this.judge(Number(e.currentTarget.dataset.i));
   },
 
   spell(e: WechatMiniprogram.TouchEvent) {
-    if (this.data.feedback !== 'none') return;
+    if (this.data.feedback !== 'none' || this.data.busy) return;
     const i = Number(e.currentTarget.dataset.i);
     const chip = this.data.pool[i];
     if (chip === undefined || chip.used) return;
@@ -272,7 +400,7 @@ Page({
   },
 
   unspell(e: WechatMiniprogram.TouchEvent) {
-    if (this.data.feedback !== 'none') return;
+    if (this.data.feedback !== 'none' || this.data.busy) return;
     const i = Number(e.currentTarget.dataset.i);
     const gone = this.data.spelled[i];
     if (gone === undefined) return;
@@ -287,21 +415,21 @@ Page({
   },
 
   check() {
-    if (this.data.feedback !== 'none') return;
+    if (this.data.feedback !== 'none' || this.data.busy) return;
     const q = this.question!;
     const input = q.kind === 'dragSpell' ? this.data.spelled.map((s) => s.ch).join('') : this.data.typed;
     this.judge(input);
   },
 
-  /** 判分 + 落状态。选择题传下标，拼写题传字符串（core/quiz.checkAnswer 的口径） */
-  judge(input: number | string) {
+  /** 判分后先落草稿；写成功前不会翻题，失败重试也不会重复计分。 */
+  async judge(input: number | string) {
+    if (this.data.feedback !== 'none' || this.data.busy) return;
     const q = this.question!;
     const rtMs = Date.now() - this.shownAt;
     const correct = checkAnswer(q, input);
     const a: Answer = { wordId: q.wordId, correct, rtMs, kind: q.kind, at: this.at };
     const guessed = isGuess(a);
 
-    // 首答只记一次。新词第一次见本来就该答错，isNew 让 core 把它排除在能力评估外
     if (!this.seen.includes(q.wordId)) {
       this.seen.push(q.wordId);
       this.firstTry.push({ correct, isNew: this.currentIsNew });
@@ -310,6 +438,7 @@ Page({
     this.asked++;
     this.states.set(q.wordId, review(this.currentState!, a, this.at));
     this.session = submit(this.session!, a);
+    this.answeredDraft = this.draftData();
 
     const optCls = q.isChoice
       ? this.data.quiz!.options.map((_, i) =>
@@ -323,12 +452,64 @@ Page({
         : '对了！'
       : `正确答案是 ${q.answer}`;
 
-    this.setData({ optCls, feedback, fbText, ...this.progressData() });
-    if (feedback === 'right') this.timer = setTimeout(() => this.next(), RIGHT_PAUSE_MS);
+    this.setData({
+      optCls,
+      feedback,
+      fbText,
+      busy: true,
+      errorText: '',
+      retryAction: 'none',
+      ...this.progressData(),
+    });
+    await this.persistAnswer(feedback === 'right');
+  },
+
+  async persistAnswer(autoNext: boolean) {
+    if (this.answeredDraft === null) return;
+    try {
+      await saveDraft(this.answeredDraft);
+      this.answeredDraft = null;
+      this.setData({ busy: false, errorText: '', retryAction: 'none' });
+      if (autoNext) this.timer = setTimeout(() => this.next(), RIGHT_PAUSE_MS);
+    } catch (error) {
+      console.error('[dayword] 答题断点保存失败', error);
+      this.setData({
+        busy: false,
+        errorText: '答案已保留在本页，但还没写入存档。请重试保存。',
+        retryAction: 'answer',
+      });
+    }
+  },
+
+  retry() {
+    if (this.data.busy) return;
+    switch (this.data.retryAction) {
+      case 'begin':
+        void this.begin();
+        break;
+      case 'teach':
+        void this.learned();
+        break;
+      case 'answer':
+        this.retrySave();
+        break;
+      case 'settle':
+        void this.retrySettle();
+        break;
+      case 'none':
+        break;
+    }
+  },
+
+  retrySave() {
+    if (this.data.busy || this.answeredDraft === null) return;
+    this.setData({ busy: true, errorText: '', retryAction: 'none' });
+    void this.persistAnswer(this.data.feedback === 'right');
   },
 
   /** 答对自动调用；答错和疑似瞎猜要孩子自己点"继续"—— 强迫他看一眼正确答案 */
   next() {
+    if (this.data.busy || this.answeredDraft !== null) return;
     if (this.timer !== 0) {
       clearTimeout(this.timer);
       this.timer = 0;
@@ -342,23 +523,47 @@ Page({
    * evaluateDaily 要吃这节课的首答结果，而 checkIn 必须在同一个"现在"下调用。
    */
   async settle() {
+    if (this.data.busy) return;
+    this.setData({ busy: true, errorText: '', retryAction: 'none' });
     const snap = this.snap!;
     const at = this.at;
     const level = snap.profile.level.level;
 
     // 空会话不打卡、不写日志：点进来看一眼不应该算完成一天
     if (this.asked === 0) {
+      try {
+        await removeDraft();
+      } catch (error) {
+        console.error('[dayword] 空课程断点清理失败', error);
+        this.setData({
+          busy: false,
+          errorText: '课程状态还没保存，请重试。',
+          retryAction: 'settle',
+        });
+        this.settleRetry = () => removeDraft();
+        this.settleSummary = { title: '今天没有到期的词 🎈', rows: [], levelUp: false, level };
+        return;
+      }
       this.setData({
         phase: 'done',
+        busy: false,
+        errorText: '',
+        retryAction: 'none',
         summary: { title: '今天没有到期的词 🎈', rows: [], levelUp: false, level },
       });
       return;
     }
 
     const reviewed = this.firstTry.filter((t) => !t.isNew);
-    const evaluated = evaluateDaily(recordAnswers(snap.profile.level, this.firstTry), at);
+    const evaluated = evaluateDaily(
+      recordAnswers(snap.profile.level, this.firstTry),
+      at,
+      MAX_PROBE_LEVEL,
+    );
     const check = checkIn(snap.profile.streak, at);
-    const states = [...this.states.values()];
+    const mergedStates = new Map(this.baseStates);
+    for (const [wordId, state] of this.states) mergedStates.set(wordId, state);
+    const states = [...mergedStates.values()];
     const logs = upsertLog(snap.logs, {
       day: startOfDay(at),
       newCount: this.newCount,
@@ -367,13 +572,7 @@ Page({
       firstTryTotal: reviewed.length,
       answerCount: this.asked,
       guessCount: this.guesses,
-      seconds: Math.round((Date.now() - this.startedAt) / 1000),
-    });
-
-    await saveSnapshot({
-      profile: { level: evaluated.state, streak: check.state, placed: snap.profile.placed },
-      states,
-      logs,
+      seconds: Math.round(this.activeSeconds + Math.max(0, (Date.now() - this.visibleAt) / 1000)),
     });
 
     const tomorrow = addDays(at, 1);
@@ -391,17 +590,74 @@ Page({
       { k: '住进顶层', v: `${states.filter((s) => s.box === MASTERED_BOX).length} 词` },
       { k: '明天要复习', v: `${states.filter((s) => s.dueAt <= tomorrow).length} 词` },
     ];
+    this.settleSummary = {
+      title: '今天完成啦',
+      rows,
+      levelUp: evaluated.changed === 1,
+      level: evaluated.state.level,
+    };
+
+    const commit = () =>
+      saveSnapshot(
+        {
+          profile: { level: evaluated.state, streak: check.state, placed: snap.profile.placed },
+          states,
+          logs,
+        },
+        true,
+      );
+    this.settleRetry = commit;
+    try {
+      await commit();
+      this.settleRetry = null;
+    } catch (error) {
+      console.error('[dayword] 课程结算失败', error);
+      this.setData({
+        busy: false,
+        errorText: '结算还没写入存档，请重试。当前课程断点仍然保留。',
+        retryAction: 'settle',
+      });
+      return;
+    }
 
     this.setData({
       phase: 'done',
-      summary: {
-        title: '今天完成啦',
-        rows,
-        // 升级要庆祝，降级静默 —— 只有 changed === 1 才渲染
-        levelUp: evaluated.changed === 1,
-        level: evaluated.state.level,
-      },
+      busy: false,
+      errorText: '',
+      retryAction: 'none',
+      summary: this.settleSummary,
     });
+  },
+
+  async retrySettle() {
+    if (this.data.busy || this.settleRetry === null) return;
+    this.setData({ busy: true, errorText: '', retryAction: 'none' });
+    try {
+      await this.settleRetry();
+      this.settleRetry = null;
+      this.setData({ phase: 'done', busy: false, errorText: '', retryAction: 'none', summary: this.settleSummary });
+    } catch (error) {
+      console.error('[dayword] 课程结算重试失败', error);
+      this.setData({ busy: false, errorText: '结算仍未写入，请稍后再重试。', retryAction: 'settle' });
+    }
+  },
+
+  imageError(e: WechatMiniprogram.CustomEvent) {
+    const kind = String(e.currentTarget.dataset.kind ?? '');
+    const index = Number(e.currentTarget.dataset.i);
+    if (kind === 'teach' && this.data.teach !== null) {
+      this.setData({ teach: { ...this.data.teach, image: '' } });
+      return;
+    }
+    if (this.data.quiz === null) return;
+    if (kind === 'stem') {
+      this.setData({ quiz: { ...this.data.quiz, stemImage: '' } });
+      return;
+    }
+    if (kind === 'option' && this.data.quiz.options[index] !== undefined) {
+      const options = this.data.quiz.options.map((option, i) => (i === index ? { ...option, image: '' } : option));
+      this.setData({ quiz: { ...this.data.quiz, options } });
+    }
   },
 
   quit() {

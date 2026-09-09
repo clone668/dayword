@@ -220,6 +220,14 @@ describe('盒子高度决定题型层级', () => {
     }
   });
 
+  it('无 CDN 时过滤纯音频题型，仍回退到可答题型', async () => {
+    const { pickKind } = await import('../miniprogram/core/questions.js');
+    const available = (kind: string) => kind !== 'audio2image' && kind !== 'dictation';
+    for (const box of ALL_BOXES) {
+      expect(['audio2image', 'dictation']).not.toContain(pickKind(6, box, () => 0, available));
+    }
+  });
+
   it('等级不够时回退到已解锁的较易题型，不会出无法作答的题', async () => {
     const { pickKind, KIND_MIN_LEVEL } = await import('../miniprogram/core/questions.js');
     for (const box of ALL_BOXES) {

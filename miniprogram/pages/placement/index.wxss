@@ -1,0 +1,41 @@
+/* 定级页。题干、选项、进度条、说明段落那套都在 app.wxss 里（跨页共用），
+   这里只剩「不认识」和结果页两块自己的东西。 */
+
+/* ---- 「不认识」 ---- */
+
+/* 和 .opts 同宽（都是 24rpx 边距），按钮就跟选项列对齐成一栏 */
+.dunno-wrap {
+  margin: 0 24rpx;
+}
+
+/* ---- 结果 ---- */
+
+.res-hero {
+  margin-bottom: 16rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+}
+
+/* 全页最大的字：孩子看完这一页只需要记住这一个数。
+   用 --tint-fg 而不是 --accent —— 赤陶原色压在卡片底上只有 2.99:1，
+   刚好差大字号那条 3:1 的线；--tint-fg 是同色系里给文字用的那一档（6.8:1 / 8.8:1） */
+.res-level {
+  font-family: var(--serif);
+  font-size: 76rpx;
+  line-height: 84rpx;
+  color: var(--tint-fg);
+}
+
+.res-theme {
+  margin-left: 16rpx;
+  font-size: 26rpx;
+  color: var(--fg-3);
+}
+
+.res-note {
+  margin-bottom: 18rpx;
+  font-size: 24rpx;
+  color: var(--fg-3);
+  line-height: 34rpx;
+}

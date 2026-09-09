@@ -1,5 +1,5 @@
 {
-  "pages": ["pages/home/index", "pages/learn/index"],
+  "pages": ["pages/home/index", "pages/learn/index", "pages/placement/index"],
   "window": {
     "backgroundColor": "@bg",
     "backgroundColorTop": "@bg",

@@ -13,8 +13,8 @@ import type { Level } from '../miniprogram/core/types.js';
 const LEVELS: Level[] = [1, 2, 3, 4, 5, 6];
 
 /** 模拟一个"真实等级为 trueLevel"的孩子：probe <= trueLevel 就通过（非满分）。 */
-function runPlacement(trueLevel: Level, perfect = false): PlacementState {
-  let s = startPlacement();
+function runPlacement(trueLevel: Level, perfect = false, max?: Level): PlacementState {
+  let s = max === undefined ? startPlacement() : startPlacement(max);
   let guard = 0;
   while (!s.finished) {
     if (guard++ > 10) throw new Error('定级测试未收敛');
@@ -91,5 +91,47 @@ describe('二分定级', () => {
     const s = submitProbe(startPlacement(), 1);
     expect(s.history[0]!.level).toBe(START_LEVEL);
     expect(s.probe).toBeLessThan(START_LEVEL);
+  });
+});
+
+/**
+ * 上限收窄。词库只铺到 L4 时探 L5/L6 抽不出题，
+ * 定到 L5 的孩子每天会领到 0 个新词 —— 不报错，只是安静地什么都不教。
+ */
+describe('等级上限', () => {
+  it('起测点是收窄后区间的中点', () => {
+    expect(startPlacement(4).probe).toBe(2);
+    expect(startPlacement(1).probe).toBe(1);
+  });
+
+  it('上限以下的等级照样定得准', () => {
+    expect(runPlacement(1, false, 4).result).toBe(1);
+    expect(runPlacement(2, false, 4).result).toBe(2);
+    expect(runPlacement(3, false, 4).result).toBe(3);
+  });
+
+  it('封顶等级满分也不上浮 —— 上面没有词可教', () => {
+    expect(runPlacement(4, true, 4).result).toBe(4);
+    expect(runPlacement(6, true, 4).result).toBe(4);
+  });
+
+  it('探测等级永远不越过上限', () => {
+    let s = startPlacement(4);
+    while (!s.finished) {
+      expect(s.probe!).toBeLessThanOrEqual(4);
+      s = submitProbe(s, PROBE_SIZE);
+    }
+    expect(s.result!).toBeLessThanOrEqual(4);
+  });
+
+  it('区间更小，收敛更快', () => {
+    expect(probesLeft(startPlacement(4))).toBeLessThanOrEqual(probesLeft(startPlacement()));
+    expect(runPlacement(3, false, 4).history.length).toBeLessThanOrEqual(3);
+  });
+
+  it('上限为 L1 时一轮就结束，且不会给出 L0', () => {
+    const s = submitProbe(startPlacement(1), 0);
+    expect(s.finished).toBe(true);
+    expect(s.result).toBe(1);
   });
 });

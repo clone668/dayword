@@ -5,12 +5,15 @@
  * 出题与判分都在 `core/quiz.ts`（有单测），这一层只决定"长什么样"，
  * 所以换 UI 不会动到难度，而难度是等级控制器的输入信号（见 core/level.ts）。
  *
+ * 放在 data/ 而不是某个页面下：学习页和定级页都要用它。
+ * 它依赖 `data/cdn`（要算图片 URL），所以本来就在 data 这一层，进不了 core。
+ *
  * CDN 未接入时的两处降级：配图 → 中文文字卡，发音 → 显示音标。
  * 这不是临时补丁：真机上下载失败也会走同一条路径，界面必须永远有东西可显示。
  */
-import type { Question } from '../../core/quiz.js';
-import type { QuestionKind, Word } from '../../core/types.js';
-import { imageUrl } from '../../data/media.js';
+import type { Question } from '../core/quiz.js';
+import type { QuestionKind, Word } from '../core/types.js';
+import { imageUrl } from './cdn.js';
 
 export interface OptionView {
   /** 选项文字。图片选项时它是配图缺失的替身 */

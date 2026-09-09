@@ -181,6 +181,12 @@ describe('evaluateDaily', () => {
     expect(second.changed).toBe(0);
   });
 
+  it('内容上限低于 L6 时不会把孩子升到空等级', () => {
+    let state = recordAnswers(initLevel(4), mix(WINDOW, WINDOW));
+    for (let d = 0; d < UP_DAYS + 2; d++) state = evaluateDaily(state, day(d), 4).state;
+    expect(state.level).toBe(4);
+  });
+
   it('L6 封顶不再升，L1 兜底不再降', () => {
     expect(evalDays(initLevel(6), UP_DAYS + 2, WINDOW, WINDOW).state.level).toBe(6);
     expect(evalDays(initLevel(1), DOWN_DAYS + 2, 0, WINDOW).state.level).toBe(1);

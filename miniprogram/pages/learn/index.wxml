@@ -15,10 +15,17 @@
       <text class="loading-text">正在安排今天的功课…</text>
     </view>
 
+    <view class="notice" wx:if="{{errorText}}">
+      <text class="notice-text">{{errorText}}</text>
+      <view class="cta cta-ghost" hover-class="cta-hover" bindtap="retry">
+        <text class="cta-ghost-text">{{retryAction === 'begin' ? '重试打开' : retryAction === 'settle' ? '重试结算' : '重试保存'}}</text>
+      </view>
+    </view>
+
     <!-- 新词第一张卡是"教"不是"测"（见 core/session.ts） -->
     <view class="card" wx:if="{{phase === 'teach'}}">
       <text class="teach-tag">✨ 新单词</text>
-      <image class="stem-img" wx:if="{{teach.image}}" src="{{teach.image}}" mode="aspectFit" />
+      <image class="stem-img" wx:if="{{teach.image}}" src="{{teach.image}}" mode="aspectFit" binderror="imageError" data-kind="teach" />
       <view class="stem-fallback" wx:else>
         <text class="stem-fallback-text">{{teach.zh}}</text>
       </view>
@@ -29,7 +36,7 @@
       <text class="teach-zh">{{teach.zh}} · {{teach.pos}}</text>
       <text class="teach-ex" wx:if="{{teach.exEn}}">{{teach.exEn}}</text>
       <text class="teach-ex-zh" wx:if="{{teach.exZh}}">{{teach.exZh}}</text>
-      <view class="cta" hover-class="cta-hover" bindtap="learned">
+      <view class="cta {{busy ? 'cta-disabled' : ''}}" hover-class="cta-hover" bindtap="learned">
         <text class="cta-text">记住了</text>
       </view>
     </view>
@@ -43,7 +50,7 @@
       </view>
       <text class="q-degrade" wx:if="{{quiz.audio && !hasMedia}}">音频还没接入，先按音标读：{{quiz.phonetic}}</text>
 
-      <image class="stem-img" wx:if="{{quiz.stemImage}}" src="{{quiz.stemImage}}" mode="aspectFit" />
+      <image class="stem-img" wx:if="{{quiz.stemImage}}" src="{{quiz.stemImage}}" mode="aspectFit" binderror="imageError" data-kind="stem" />
       <view class="stem-fallback" wx:elif="{{quiz.stemText}}">
         <text class="stem-fallback-text">{{quiz.stemText}}</text>
       </view>
@@ -62,7 +69,7 @@
         bindtap="pick"
         data-i="{{index}}"
       >
-        <image class="opt-img" wx:if="{{item.image}}" src="{{item.image}}" mode="aspectFit" />
+        <image class="opt-img" wx:if="{{item.image}}" src="{{item.image}}" mode="aspectFit" binderror="imageError" data-kind="option" data-i="{{index}}" />
         <text class="opt-text">{{item.text}}</text>
       </view>
     </view>

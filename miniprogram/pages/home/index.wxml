@@ -11,6 +11,29 @@
   </view>
 
   <scroll-view class="body" scroll-y>
+    <view class="loading" wx:if="{{loading}}">
+      <text class="loading-text">正在读取学习进度…</text>
+    </view>
+    <view class="notice" wx:if="{{errorText}}">
+      <text class="notice-text">{{errorText}}</text>
+      <view class="cta cta-ghost" hover-class="cta-hover" bindtap="retry">
+        <text class="cta-ghost-text">重试</text>
+      </view>
+    </view>
+
+    <!-- 定级入口。放在最上面且只在没测过时出现：不测的话所有孩子都从 L2 开始
+         （data/local.ts 的 DEFAULT_LEVEL），学前和六年级拿到同一份功课 -->
+    <view class="card" wx:if="{{!placed}}">
+      <view class="card-head">
+        <text class="card-title">先定个起点</text>
+        <text class="card-sub">约 {{probeTotal}} 题 · 两三分钟</text>
+      </view>
+      <text class="para">测一下现在的水平，在 L1（学前）到 L{{maxProbeLevel}} 之间挑一个起点。现在按默认的 L{{level}} 发词，可能偏简单，也可能偏难。</text>
+      <view class="cta" hover-class="cta-hover" bindtap="place">
+        <text class="cta-text">开始定级</text>
+      </view>
+    </view>
+
     <!-- 今日任务 -->
     <view class="card">
       <view class="card-head">
@@ -104,6 +127,10 @@
         </view>
         <view class="dev-btn" hover-class="cta-hover" bindtap="advance" data-days="5">
           <text class="dev-btn-text">+5 天</text>
+        </view>
+        <!-- 重测不是家长功能：等级漂移由 core/level.ts 的控制器自己纠 -->
+        <view class="dev-btn" hover-class="cta-hover" bindtap="place">
+          <text class="dev-btn-text">重新定级</text>
         </view>
         <view class="dev-btn dev-btn-warn" hover-class="cta-hover" bindtap="reset">
           <text class="dev-btn-text">清空进度</text>

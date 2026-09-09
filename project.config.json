@@ -5,11 +5,11 @@
   "compileType": "miniprogram",
   "libVersion": "3.6.5",
   "setting": {
-    "urlCheck": false,
+    "urlCheck": true,
     "es6": true,
     "enhance": true,
     "postcss": true,
-    "minified": false,
+    "minified": true,
     "useCompilerPlugins": [
       "typescript"
     ],
@@ -18,7 +18,7 @@
     "skylineRenderEnable": true,
     "compileWorklet": false,
     "uglifyFileName": false,
-    "uploadWithSourceMap": true,
+    "uploadWithSourceMap": false,
     "packNpmRelationList": [],
     "minifyWXSS": true,
     "minifyWXML": true,

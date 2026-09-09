@@ -1,0 +1,104 @@
+<view class="page {{themeCls}}">
+  <view class="bar" style="padding-top: {{statusBar}}px">
+    <view class="back" hover-class="cta-hover" bindtap="quit">
+      <text class="back-text">‹ 返回</text>
+    </view>
+    <text class="bar-level" wx:if="{{phase === 'quiz'}}">第 {{qNo}} 题 · 约 {{estTotal}} 题</text>
+  </view>
+  <!-- 分母是估算值：二分收敛后可能变少，所以 pctDone 在 index.ts 里做了只升不降的钳制 -->
+  <view class="pbar" wx:if="{{phase === 'quiz'}}">
+    <view class="pfill" style="width: {{pctDone}}%"></view>
+  </view>
+
+  <scroll-view class="body" scroll-y>
+    <!-- 开场。这页大概率是孩子第一次打开 app 看到的第二屏，先把"这不是考试"说清楚 -->
+    <view class="card" wx:if="{{phase === 'intro'}}">
+      <view class="card-head">
+        <text class="card-title">先定个起点</text>
+        <text class="card-sub">大约 {{estTotal}} 道题 · 两三分钟</text>
+      </view>
+      <text class="para">题目从中间难度开始：答得顺就往上探，答不动就往下退，最后停在合适的那一级。</text>
+      <text class="para">这只是找起点，没有分数，也不会一题一题说对错。之后每天做题，等级还会自己微调。</text>
+      <text class="para">碰到没见过的词，直接点「不认识」—— 比乱猜准得多。</text>
+      <view class="notice" wx:if="{{capped}}">
+        <text class="notice-text">词库目前铺到 L{{maxLevel}}，所以最高测到 L{{maxLevel}}。更高等级的词还在补。</text>
+      </view>
+      <view class="cta" hover-class="cta-hover" bindtap="begin">
+        <text class="cta-text">开始定级</text>
+      </view>
+      <view class="cta cta-ghost" hover-class="cta-hover" bindtap="quit">
+        <text class="cta-ghost-text">以后再说</text>
+      </view>
+    </view>
+
+    <!-- 题干。和学习页共用 app.wxss 里那套 .q-* / .stem-* / .opt-* -->
+    <view class="card" wx:if="{{phase === 'quiz'}}">
+      <text class="q-hint">{{quiz.hint}}</text>
+
+      <view class="audio" wx:if="{{quiz.audio}}" hover-class="cta-hover" bindtap="playWord">
+        <text class="audio-text">🔊 点我听发音</text>
+      </view>
+      <text class="q-degrade" wx:if="{{quiz.audio && !hasMedia}}">音频还没接入，先按音标读：{{quiz.phonetic}}</text>
+
+      <image class="stem-img" wx:if="{{quiz.stemImage}}" src="{{quiz.stemImage}}" mode="aspectFit" binderror="imageError" data-kind="stem" />
+      <view class="stem-fallback" wx:elif="{{quiz.stemText}}">
+        <text class="stem-fallback-text">{{quiz.stemText}}</text>
+      </view>
+
+      <text class="q-title" wx:if="{{quiz.title}}">{{quiz.title}}</text>
+      <text class="q-sub" wx:if="{{quiz.subtitle}}">{{quiz.subtitle}}</text>
+    </view>
+
+    <!-- 定级只出选择题（data/probe.ts 把产出类题型排除了），所以不做 mode 分支。
+         选中只给一个中性的 .opt-picked，不涂对错 —— 见 index.ts 文件头第 2 条 -->
+    <view class="opts" wx:if="{{phase === 'quiz'}}">
+      <view
+        class="opt {{optCls[index]}}"
+        wx:for="{{quiz.options}}"
+        wx:key="text"
+        hover-class="cta-hover"
+        bindtap="pick"
+        data-i="{{index}}"
+      >
+        <image class="opt-img" wx:if="{{item.image}}" src="{{item.image}}" mode="aspectFit" binderror="imageError" data-kind="option" data-i="{{index}}" />
+        <text class="opt-text">{{item.text}}</text>
+      </view>
+    </view>
+
+    <!-- 「不认识」压在选项下面、样式弱一档：它是出口，不该比选项更抢眼 -->
+    <view class="dunno-wrap" wx:if="{{phase === 'quiz'}}">
+      <view class="cta cta-ghost" hover-class="cta-hover" bindtap="dunno">
+        <text class="cta-ghost-text">不认识这个词</text>
+      </view>
+    </view>
+
+    <view class="notice" wx:if="{{errorText}}">
+      <text class="notice-text">{{errorText}}</text>
+      <view class="cta cta-ghost" hover-class="cta-hover" bindtap="retryFinish">
+        <text class="cta-ghost-text">重试保存</text>
+      </view>
+    </view>
+
+    <!-- 结果。孩子只看到"起点在哪"，答对情况留给家长看的那几行 -->
+    <view class="card" wx:if="{{phase === 'done'}}">
+      <text class="done-title">起点定好了</text>
+      <view class="res-hero">
+        <text class="res-level">L{{result.level}}</text>
+        <text class="res-theme">{{result.theme}}主题</text>
+      </view>
+      <text class="res-note">系统会跟着做题情况自己调：连着几天答得轻松就往上走，吃力就往下退，不用手动重测。</text>
+      <view class="kv" wx:for="{{result.rows}}" wx:key="k">
+        <text class="kv-k">{{item.k}}</text>
+        <text class="kv-v">{{item.v}}</text>
+      </view>
+      <view class="notice" wx:if="{{capped}}">
+        <text class="notice-text">本次最高只测到 L{{maxLevel}}（当前词库上限）。更高等级内容补齐并审核前，系统会把等级安全地保持在 L{{maxLevel}} 以内。</text>
+      </view>
+      <view class="cta" hover-class="cta-hover" bindtap="go">
+        <text class="cta-text">开始今天的功课</text>
+      </view>
+    </view>
+
+    <view class="tail"></view>
+  </scroll-view>
+</view>

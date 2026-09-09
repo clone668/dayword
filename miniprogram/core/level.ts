@@ -93,6 +93,7 @@ export function accuracy(s: LevelState): number {
 export function evaluateDaily(
   s: LevelState,
   now: number,
+  maxLevel: Level = MAX_LEVEL,
 ): { state: LevelState; changed: LevelChange } {
   const day = startOfDay(now);
   if (s.lastEvalDay === day) return { state: s, changed: 0 };
@@ -121,7 +122,7 @@ export function evaluateDaily(
 
   if (acc >= UP_RATIO) {
     const upDays = Math.min(s.upDays + 1, UP_DAYS);
-    if (upDays >= UP_DAYS && s.level < MAX_LEVEL) {
+    if (upDays >= UP_DAYS && s.level < Math.min(MAX_LEVEL, maxLevel)) {
       return changeTo((s.level + 1) as Level, 1);
     }
     return { state: { ...base, upDays, downDays: 0 }, changed: 0 };

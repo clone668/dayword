@@ -69,8 +69,13 @@ export function tierForBox(box: Box): KindTier {
  * 为某个词选一道题。
  * @param rand 注入随机源，测试时传固定值以保证确定性
  */
-export function pickKind(level: Level, box: Box, rand: () => number = Math.random): QuestionKind {
-  const unlocked = kindsForLevel(level);
+export function pickKind(
+  level: Level,
+  box: Box,
+  rand: () => number = Math.random,
+  available: (kind: QuestionKind) => boolean = () => true,
+): QuestionKind {
+  const unlocked = kindsForLevel(level).filter(available);
   for (const tier of TIER_FALLBACK[tierForBox(box)]) {
     const candidates = unlocked.filter((k) => KIND_TIER[k] === tier);
     if (candidates.length > 0) {
@@ -78,6 +83,6 @@ export function pickKind(level: Level, box: Box, rand: () => number = Math.rando
       return candidates[idx]!;
     }
   }
-  // L1 一定有 recognize 题型，逻辑上到不了这里
-  return 'audio2image';
+  // 正常的 L1 一定有 recognize 题型；若调用方把媒体题全过滤掉，仍回退到可答的图词题。
+  return unlocked[0] ?? 'image2word';
 }

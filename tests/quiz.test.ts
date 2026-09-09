@@ -6,10 +6,10 @@ import {
   OPTION_COUNT,
   pickDistractors,
 } from '../miniprogram/core/quiz.js';
-import { WORDS, WORD_BY_ID } from '../miniprogram/data/words.js';
+import { WORDS, WORD_BY_ID, WORD_BY_TEXT } from '../miniprogram/data/words.js';
 import { rng } from './helpers.js';
 
-const word = (text: string) => WORD_BY_ID.get(`w-${text}`)!;
+const word = (text: string) => WORD_BY_TEXT.get(text)!;
 const textOf = (id: string) => WORD_BY_ID.get(id)!.text;
 
 describe('pickDistractors', () => {

@@ -13,7 +13,11 @@
     "sim": "vitest run tests/simulation.test.ts --reporter=verbose",
     "build:demo": "tsc -p tsconfig.build.json",
     "play": "npm run build:demo --silent && node dist/tools/play.js",
-    "trace": "npm run build:demo --silent && node dist/tools/play.js trace"
+    "trace": "npm run build:demo --silent && node dist/tools/play.js trace",
+    "content:check": "npm run build:demo --silent && node dist/tools/check-content.js",
+    "ui:check": "npm run build:demo --silent && node dist/tools/check-miniprogram.js",
+    "check": "npm run typecheck --silent && npm test --silent && npm run content:check --silent && npm run ui:check --silent && npx tsc --noEmit -p miniprogram/tsconfig.json",
+    "release:check": "npm run check --silent && node dist/tools/release-check.js"
   },
   "devDependencies": {
     "@types/node": "22.10.2",

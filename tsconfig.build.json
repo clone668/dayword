@@ -9,7 +9,8 @@
     "noEmit": false,
     "outDir": "dist",
     "rootDir": ".",
-    "sourceMap": true
+    "sourceMap": true,
+    "verbatimModuleSyntax": false
   },
-  "include": ["miniprogram/core/**/*.ts", "tools/**/*.ts"]
+  "include": ["miniprogram/core/**/*.ts", "miniprogram/data/cdn.ts", "miniprogram/data/probe.ts", "miniprogram/data/words.ts", "tools/**/*.ts"]
 }
